@@ -9,53 +9,71 @@ class Node {
 public:
     Node() = default;
 
-    ~Node() = default;
+    ~Node() {
+        if (m_parent) {
+            m_parent->remove_child(*this);
+        }
+        for (auto child: m_children) {
+            child->m_parent = nullptr;
+        }
+        m_children.clear();
+    };
 
-    explicit Node(T value) {
-        m_value = value;
-    }
+    explicit Node(T value) : m_value(value) {}
 
-    Node(const Node<T> &rhs){
+    Node(const Node<T> &rhs) : m_parent(rhs.m_parent), m_value(rhs.m_value) {
         if (this == &rhs)
             return;
-        m_value = rhs.m_value;
-        m_parent = new Node<T>();
-        m_parent->m_value = rhs.m_parent->m_value;
-        for (auto child : rhs.m_children){
+        for (auto child: rhs.m_children) {
             m_children.push_back(child);
+            m_children.back()->m_parent = this;
         }
     }
 
-    Node &operator=(const Node<T> &rhs){
+    Node(Node &&lhs) = delete;
+
+    [[nodiscard]] auto operator=(const Node<T> &rhs) -> Node<T> &{
         if (this == &rhs)
             return *this;
+        m_parent = rhs.m_parent;
         m_value = rhs.m_value;
-        m_parent = new Node<T>();
-        m_parent->m_value = rhs.m_parent->m_value;
-        for (auto child : rhs.m_children){
+        for (auto child: rhs.m_children) {
             m_children.push_back(child);
+            m_children.back()->m_parent = this;
         }
         return *this;
     };
 
-    Node(Node &&lhs) = delete;
+    auto operator=(Node<T> &&lhs) -> Node<T> & = delete;
 
-    Node<T> &operator=(Node<T> &&lhs) = delete;
+    [[nodiscard]] auto operator*() -> T & { return m_value; }
 
-    T &operator*() { return m_value; }
-    const T &operator*() const { return m_value; }
+    [[nodiscard]] auto operator*() const -> const T & { return m_value; }
 
-    T &operator!() { return m_value != nullptr; }
-    const T &operator!() const { return m_value != nullptr; }
+    [[nodiscard]] auto operator!() -> T & { return m_value != nullptr; }
+
+    [[nodiscard]] auto operator!() const -> const T & { return m_value != nullptr; }
+
+    [[nodiscard]] auto operator<=>(const Node<T> &node) -> auto { return m_value <=> node.m_value; }
+
+    [[nodiscard]] auto operator==(const Node<T> &node) -> bool { return *this <=> node == 0; }
+
+    [[nodiscard]] auto operator!=(const Node<T> &node) -> bool { return *this != node; }
 
     auto add_child(Node<T> &node) -> void {
         node.m_parent = this;
         m_children.push_back(&node);
     }
 
+    auto remove_child(Node<T> &node) -> void {
+        std::erase(m_children, &node);
+        node.m_parent = nullptr;
+    }
+
     [[nodiscard]] auto get_parent() const -> Node<T> * { return m_parent; }
 
     [[nodiscard]] auto get_children() const -> const std::vector<Node<T> *> & { return m_children; }
+
     [[nodiscard]] auto get_children() -> std::vector<Node<T> *> & { return m_children; }
 
     [[nodiscard]] auto is_leaf() const -> bool { return get_children().empty(); }
