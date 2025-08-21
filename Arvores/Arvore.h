@@ -30,9 +30,12 @@ public:
         }
     }
 
-    Node(Node &&lhs) = delete;
+    Node(Node &&lhs) noexcept: m_parent(lhs.m_parent), m_value(lhs.m_value), m_children(lhs.m_children) {
+        lhs.m_parent = nullptr;
+        lhs.m_children = nullptr;
+    }
 
-    [[nodiscard]] auto operator=(const Node<T> &rhs) -> Node<T> &{
+    [[nodiscard]] auto operator=(const Node<T> &rhs) -> Node<T> & {
         if (this == &rhs)
             return *this;
         m_parent = rhs.m_parent;
@@ -99,26 +102,27 @@ public:
         m_root = node;
     }
 
+    auto initialize(Node<T> &node) -> void {
+        if (m_root) return;
+        m_root = new Node<T>(node);
+    }
+
     // numero de nós
     [[nodiscard]] auto size() const -> std::size_t {
-        if (!m_root)
-            return 0;
-        return tree_size(m_root);
+        if (!m_root) return 0;
+        return tree_size(*m_root);
     }
 
     // se a árvore está vazia
     [[nodiscard]] auto is_empty() const -> bool {
-        if (m_root)
-            return false;
+        if (m_root) return false;
         return true;
     }
 
-    [[nodiscard]] auto get_root() const -> Node<T> * {
-        return m_root;
-    }
+    [[nodiscard]] auto get_root() const -> Node<T> * { return m_root; }
 
     // devolder uma lista com todos os nós
-    [[nodiscard]] auto get_nodes() const -> std::vector<Node<T> *>;
+    [[nodiscard]] auto get_nodes() const -> std::vector<Node<T> *> {}
 
     // [Algoritmos]
 
@@ -173,14 +177,13 @@ public:
         std::print(*node);
     }
 
-    static auto tree_size(const Node<T> &node) -> std::size_t {
+    static auto tree_size(Node<T> &node) -> std::size_t {
         std::size_t size{1};
         if (node.is_internal()) {
-            for (auto child: node.get_children()) {
-                size += tree_size(child);
-            }
-            return size;
+            for (auto child: node.get_children())
+                size += tree_size(*child);
         }
+        return size;
     }
 
 private:
